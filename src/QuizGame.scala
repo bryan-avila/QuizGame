@@ -41,7 +41,7 @@ object QuizGame extends App{
   val medium_correctAnswers: Map[Question, Int] = Map.apply(medium_question1 -> 4, medium_question2 -> 2, medium_question3 -> 2, medium_question4 -> 2, medium_question5 -> 1, medium_question6 -> 2, medium_question7 -> 4)
   val hard_correctAnswers: Map[Question, Int] = Map.apply(hard_question1 -> 4, hard_question2 -> 3, hard_question3 -> 2, hard_question4 -> 2, hard_question5 -> 1, hard_question6 -> 4, hard_question7 -> 2, hard_question8 -> 2, hard_question9 -> 4, hard_question10 -> 2)
 
-  // Method to establish the game restrictions and present the Quiz questions
+  // 3) Method that grabs the game restrictions and present the Quiz questions, counting the score each time player is correct
   def quizGame(timer: Int, listOfQuestions: List[Question], difficulty: String): Int = {
     println()
     println(s"----- You have $timer seconds to answer ${listOfQuestions.length} questions -----")
@@ -53,42 +53,42 @@ object QuizGame extends App{
 
     val randomListOfQuestions = Random.shuffle(listOfQuestions) // Shuffle list of questions for variety
 
-    // START OF WHILE LOOP: Display questions to the user
+    // START OF WHILE LOOP: Display questions to the player
     while (timerDeadline.hasTimeLeft() && currentQuestion < randomListOfQuestions.length) {
-            println()
-            println(randomListOfQuestions(currentQuestion).question) // Print question
-            randomListOfQuestions(currentQuestion).options.foreach(println) // Print each question's options
-            print("Select your choice (1-4): ")
-            val playerChoice = scala.io.StdIn.readInt()
+      println()
+      println(randomListOfQuestions(currentQuestion).question) // Print question
+      randomListOfQuestions(currentQuestion).options.foreach(println) // Print each question's options
+      print("Select your choice (1-4): ")
+      val playerChoice = scala.io.StdIn.readInt()
 
-            var answer = correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None) // Default Choice.
-            if (difficulty == "easy") {
-              answer = correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
-            }
-            else if (difficulty == "medium") {
-              answer = medium_correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
-            }
-            else if(difficulty == "hard"){
-              answer = hard_correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
-            }
+      var answer = correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None) // Default Choice.
+      if (difficulty == "Easy") {
+        answer = correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
+      }
+      else if (difficulty == "Medium") {
+        answer = medium_correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
+      }
+      else if(difficulty == "Hard"){
+        answer = hard_correctAnswers.getOrElse(randomListOfQuestions(currentQuestion), None)
+      }
 
-            if (playerChoice == answer) {
-              println()
-              println("Correct!!!")
-              playerScore = playerScore + 1
-              currentQuestion = currentQuestion + 1
-            }
-            else {
-              println()
-              println("Incorrect.")
-              currentQuestion = currentQuestion + 1
-            }
-     }
+      if (playerChoice == answer) {
+        println()
+        println("Correct!!!")
+        playerScore = playerScore + 1
+        currentQuestion = currentQuestion + 1
+      }
+      else {
+        println()
+        println("Incorrect.")
+        currentQuestion = currentQuestion + 1
+      }
+    }
     // END OF WHILE LOOP: Out of loop due to either running out of time or answering all questions
     if(!(currentQuestion < randomListOfQuestions.length) && timerDeadline.hasTimeLeft()) { // All Q's answered AND time left over?
-        println()
-        println(s"You answered all ${randomListOfQuestions.length} questions under $timer seconds")
-      }
+      println()
+      println(s"You answered all ${randomListOfQuestions.length} questions under $timer seconds")
+    }
     else if(!timerDeadline.hasTimeLeft() && !(currentQuestion < randomListOfQuestions.length)) { // All Q's answered and no time left?
       println()
       println(s"You answered all ${randomListOfQuestions.length} questions but ran out of time!")
@@ -102,9 +102,42 @@ object QuizGame extends App{
 
   }
 
-  // Method that obtains the player's preferred difficulty. Allow players to attempt all three modes in one run
-  // Validate that a user cannot re-attempt the same difficulty mode in one run
-  // Display the user's final overall score
+  // 2) Method that calls method quizGame, stores the score the player achieved, and asks if player wishes to try the other modes
+  // Validates that a player cannot repeat a mode by passing beatEasy,Medium, and Hard.
+  // PassedTotalScore is used to keep track of the TOTAL SCORE across all three game-modes
+  def quizStartAndScore(timer: Int, passedTotalScore: Int, chosenModeSet: List[Question], modeName: String, beatEasy: Boolean, beatMedium: Boolean, beatHard: Boolean): Unit = {
+
+    val modeScore = quizGame(timer, chosenModeSet, modeName)
+
+    if (modeScore == chosenModeSet.length) {
+      println()
+      println(s"Congrats $playerName, you have answered all questions correctly and achieved $modeScore points in $modeName Mode!")
+    }
+    else println(s"$playerName, you achieved $modeScore points in $modeName Mode.")
+
+    val updatedScore = modeScore + passedTotalScore
+
+    println(s"Your TOTAL SCORE is $updatedScore")
+    if(beatEasy && beatMedium && beatHard) {
+      println()
+      println(s"----- Thanks for playing all modes, $playerName! Your final TOTAL SCORE is $updatedScore -----")
+      System.exit(0)
+    }
+    println("Would you like to try again? (Y/n)")
+    val playerRepeat = io.StdIn.readChar()
+    if(playerRepeat.toUpper == 'Y') {
+      quizSetUp(playerName, passedTotalScore = updatedScore, beatEasy = beatEasy, beatMedium = beatMedium, beatHard = beatHard)
+    }
+    else {
+      println(s"----- Thanks for playing $playerName! Your final TOTAL SCORE is $updatedScore -----")
+      System.exit(0)
+    }
+
+  }
+
+  // 1) Method that obtains the player's preferred difficulty. Allow players to attempt all three modes in one run
+  // Validate that a player cannot re-attempt the same difficulty mode in one run
+  // Display the player's final overall score
   def quizSetUp(playerName: String, passedTotalScore: Int, beatEasy: Boolean, beatMedium: Boolean, beatHard: Boolean): Unit =
   {
       println()
@@ -115,91 +148,37 @@ object QuizGame extends App{
       print("Your choice: ")
       val playerDifficulty = scala.io.StdIn.readInt()
 
+      // Given the mode the player choice, send the appropriate timer (seconds), question set, and name of the mode
+      // Keep track of when players have cleared a mode to prevent repeat playthroughs.
       playerDifficulty match {
-        // CASE 1: EASY START
         case 1 =>
          if (beatEasy) { // Have they played Easy already?
             println()
             println("***** You've already attempted Easy Mode! Select another! ***** ")
             quizSetUp(playerName, passedTotalScore, beatEasy = true, beatMedium = beatMedium, beatHard = beatHard)
           }
+          quizStartAndScore(timer = 45, passedTotalScore, chosenModeSet = easyQuestionSet, modeName = "Easy", beatEasy = true, beatMedium, beatHard)
 
-         val modeScore = quizGame(45, easyQuestionSet, "easy") // Start the game on Easy
-
-         if (modeScore == easyQuestionSet.length) { // Have they answered every question correctly?
-            println()
-            println(s"Congrats $playerName, you have answered all questions correctly and achieved $modeScore points in Easy Mode!")
-         }
-         else println(s"$playerName, you achieved $modeScore points in Easy Mode.") // Else, show their points
-
-         val updatedScore = modeScore + passedTotalScore
-
-         println(s"Your TOTAL SCORE is $updatedScore")
-         println("Would you like to try again? (Y/n)") // Will they play the other modes?
-         val userRepeat = io.StdIn.readChar()
-         if(userRepeat.toUpper == 'Y') {
-           quizSetUp(playerName, passedTotalScore = updatedScore, beatEasy = true, beatMedium = beatMedium, beatHard = beatHard)
-         }
-         else println(s"----- Thanks for playing $playerName! Your final TOTAL SCORE is $updatedScore")
-        // CASE 1: EASY END
-
-        // CASE 2: MEDIUM START
        case 2 =>
          if (beatMedium) { // Have they played Medium already?
             println()
             println("***** You've already attempted Medium Mode! Select another! ***** ")
             quizSetUp(playerName, passedTotalScore, beatEasy =  beatEasy, beatMedium = true, beatHard = beatHard)
          }
+          quizStartAndScore(timer = 70, passedTotalScore, chosenModeSet = mediumQuestionSet, modeName = "Medium", beatEasy = beatEasy, beatMedium = true, beatHard = beatHard)
 
-         val modeScore = quizGame(70, mediumQuestionSet, "medium") // Start the game on Medium
-
-         if (modeScore == mediumQuestionSet.length) { // Have they answered all questions correctly?
-           println()
-           println(s"Congrats $playerName, you have answered all questions correctly and achieved $modeScore points in Medium Mode!")
-         }
-         else println(s"$playerName, you achieved $modeScore points in Medium Mode.") // Else, show their points
-
-         val updatedScore = modeScore + passedTotalScore
-
-         println(s"Your TOTAL SCORE is $updatedScore")
-         println("Would you like to try again? (Y/n)") // Will they play other modes?
-         val userRepeat = io.StdIn.readChar()
-         if(userRepeat.toUpper == 'Y') {
-           quizSetUp(playerName, passedTotalScore = updatedScore, beatEasy = beatEasy, beatMedium = true, beatHard = beatHard)
-         }
-         else println(s"----- Thanks for playing $playerName! Your final TOTAL SCORE is $updatedScore")
-       // CASE 2: MEDIUM END
-
-       // CASE 3: HARD START
        case 3 =>
          if (beatHard){ // Have they played Hard already?
            println()
            println("***** You've already attempted Hard Mode! Select another! *****")
             quizSetUp(playerName, passedTotalScore, beatEasy =  beatEasy, beatMedium = beatMedium, beatHard = true)
          }
+          quizStartAndScore(timer = 90, passedTotalScore, chosenModeSet = hardQuestionSet, modeName = "Hard", beatEasy = beatEasy, beatMedium = beatMedium, beatHard = true)
 
-         val modeScore = quizGame(timer = 90, hardQuestionSet, "hard") // Start the game on hard
-
-         if(modeScore == hardQuestionSet.length) { // Answered all questions correctly?
-            println()
-            println(s"Congrats $playerName, you have answered all questions correctly and achieved $modeScore points in Hard Mode!")
-          }
-         else {
+        case _ =>
           println()
-          println(s"$playerName, you achieved $modeScore points in Hard Mode.") // Else, show their points
-        }
-
-         val updatedScore = modeScore + passedTotalScore
-
-         println(s"Your TOTAL SCORE is $updatedScore")
-         if (beatEasy && beatMedium) return
-         println("Would you like to try again? (Y/n)") // Will they play other modes?
-         val userRepeat = io.StdIn.readChar()
-         if(userRepeat.toUpper == 'Y') {
-           quizSetUp(playerName, passedTotalScore = updatedScore, beatEasy = beatEasy, beatMedium = beatMedium, beatHard = true)
-         }
-         else println(s"----- Thanks for playing $playerName! Your final TOTAL SCORE is $updatedScore")
-        // CASE 3: HARD END
+          println("Thanks for playing! Goodbye!")
+          System.exit(0)
       }
   }
 
@@ -210,6 +189,12 @@ object QuizGame extends App{
   println(" -----                Welcome to my Quiz Game!                   ----- ")
   println(" ----- Answer questions of varying difficulty under a time limit ----- ")
   print("Enter your name: ")
+
+  val regex = """^[a-zA-Z\s]+$""".r
   val playerName = scala.io.StdIn.readLine()
+  if(playerName.isEmpty || playerName.trim.isEmpty || !(regex.matches(playerName))) {
+    println("Invalid name entered.")
+    System.exit(0)
+  }
   quizSetUp(playerName, passedTotalScore = 0, beatEasy = false, beatMedium = false, beatHard = false) // Each time the program is ran, the player starts with 0 score in each mode
 }
